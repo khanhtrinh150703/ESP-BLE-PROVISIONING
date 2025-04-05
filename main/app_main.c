@@ -54,8 +54,54 @@ void turn_on_rgb();
 void turn_on_single_led();
 void turn_off_single_led();
 void reset_gpio_for_single_led();
+static esp_err_t erase_wifi_credentials(void);
 static void mqtt_app_start(void);
 void publish_device_status(const char *status);
+
+typedef struct {
+    void (*handle)();
+} CommandStrategy;
+
+void handle_on() { turn_on_single_led(); }
+void handle_off() { turn_off_single_led(); }
+void handle_on_rgb() { turn_on_rgb(); }
+void handle_off_rgb() { turn_off_rgb(); }
+void handle_erase_wifi() { erase_wifi_credentials(); }
+
+typedef struct {
+    const char *key;         // Command string (e.g., "on")
+    CommandStrategy strategy; // Associated strategy
+} HashEntry;
+
+// Static hash table (for simplicity)
+HashEntry command_map[] = {
+    {"on", {handle_on}},
+    {"off", {handle_off}},
+    {"onRGB", {handle_on_rgb}},
+    {"offRGB", {handle_off_rgb}},
+    {"deleteNVS", {handle_erase_wifi}},
+    {"changeWifi", {handle_erase_wifi}},
+    {NULL, {NULL}} // Sentinel to mark end of array
+};
+
+// Simple hash function (for demonstration; could be improved)
+unsigned int hash(const char *str) {
+    unsigned int hash = 0;
+    while (*str) {
+        hash = (hash * 31) + (*str++);
+    }
+    return hash % (sizeof(command_map) / sizeof(command_map[0]) - 1); // Size minus sentinel
+}
+
+// Lookup function
+CommandStrategy* find_strategy(const char *key) {
+    for (int i = 0; command_map[i].key != NULL; i++) {
+        if (strcmp(command_map[i].key, key) == 0) {
+            return &command_map[i].strategy;
+        }
+    }
+    return NULL;
+}
 
 const uint8_t colors[7][3] = {
     {255, 0, 0},    // Đỏ
@@ -589,36 +635,17 @@ void cycle_colors()
     }
 }
 
-void handle_led_command(const char *data, int len)
-{
+void handle_led_command(const char *data, int len) {
     char received_data[32] = {0};
     strncpy(received_data, data, len < sizeof(received_data) ? len : sizeof(received_data) - 1);
     received_data[sizeof(received_data) - 1] = '\0';
 
     ESP_LOGI(TAG, "Received command: %s", received_data);
 
-    if (strcmp(received_data, "on") == 0)
-    {
-        turn_on_single_led();
-    }
-    else if (strcmp(received_data, "off") == 0)
-    {
-        turn_off_single_led();
-    }
-    else if (strcmp(received_data, "onRGB") == 0)
-    {
-        turn_on_rgb();
-    }
-    else if (strcmp(received_data, "offRGB") == 0)
-    {
-        turn_off_rgb();
-    }
-    else if (strcmp(received_data, "deleteNVS") == 0)
-    {
-        erase_wifi_credentials();
-    }
-    else
-    {
+    CommandStrategy *strategy = find_strategy(received_data);
+    if (strategy != NULL && strategy->handle != NULL) {
+        strategy->handle();
+    } else {
         ESP_LOGW(TAG, "Unknown command: %s", received_data);
         publish_device_status("error:unknown_command");
     }
@@ -741,6 +768,7 @@ void app_main(void)
     {
         provisioned = true;
         ESP_LOGI(TAG, "Device already provisioned with SSID: %s", stored_ssid);
+        // erase_wifi_credentials(); // Xóa thông tin Wi-Fi sau khi đọc
     }
     if (!provisioned)
     {

@@ -6,4 +6,4 @@
 *.fatbin
 build/
 .vscode/
-.devcontainer/
+.devcontainer/6
