@@ -27,10 +27,15 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         int msg_id = esp_mqtt_client_subscribe(client, command_topic, 0);
         ESP_LOGI(TAG, "Subscribed to %s, msg_id=%d", command_topic, msg_id);
 
+        char status_topic[64];
+        snprintf(status_topic, sizeof(status_topic), "/speech/command");
+        int msg_id_status = esp_mqtt_client_subscribe(client, status_topic, 0);
+        ESP_LOGI(TAG, "Subscribed to %s, msg_id=%d", status_topic, msg_id_status);
+        
         if (!isPublish)
         {
-            int msg_id2 = esp_mqtt_client_publish(client, "/phone/notification", command_topic, 0, 1, 0);
-            ESP_LOGI(TAG, "Published command topic to /phone/notification: %s, msg_id=%d", command_topic, msg_id2);
+            int msg_id2 = esp_mqtt_client_publish(client, "/devices/notification", command_topic, 0, 1, 0);
+            ESP_LOGI(TAG, "Published command topic to /devices/notification: %s, msg_id=%d", command_topic, msg_id2);
             isPublish = true;
         }
         break;

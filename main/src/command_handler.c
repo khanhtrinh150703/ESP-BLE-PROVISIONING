@@ -22,6 +22,8 @@ static HashEntry command_map[] = {
     {"offRGB", {handle_off_rgb}},
     {"deleteNVS", {handle_erase_wifi}},
     {"changeWifi", {handle_erase_wifi}},
+    {"turn on", {handle_on}},
+    {"turn off", {handle_off}},
     {NULL, {NULL}} // Kết thúc mảng
 };
 

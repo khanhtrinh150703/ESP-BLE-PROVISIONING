@@ -45,7 +45,7 @@ void app_main(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    // // Xóa thông tin Wi-Fi trước khi bắt đầu provisioning
+    //  Xóa thông tin Wi-Fi trước khi bắt đầu provisioning
     // erase_wifi_credentials();
 
     // Khởi động Wi-Fi và provisioning
