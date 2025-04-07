@@ -14,7 +14,7 @@ typedef struct {
 } HashEntry;
 
 // Khai báo các hàm public
-void handle_led_command(const char *data, int len);
+void handle_led_command(const char *topic, const char *data, int len, const char *dynamic_topic);
 void handle_erase_wifi(void);
 
 #endif // COMMAND_HANDLER_H

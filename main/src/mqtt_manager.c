@@ -15,12 +15,14 @@ static bool isPublish = false;
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_mqtt_event_handle_t event = event_data;
+    static char command_topic[64]; // Lưu topic động để sử dụng trong các sự kiện
+
     switch (event->event_id)
     {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT connected to broker");
         MQTT_CONNECTED = 1;
-        char command_topic[64];
+
         uint8_t mac[6];
         esp_wifi_get_mac(WIFI_IF_STA, mac);
         snprintf(command_topic, sizeof(command_topic), "/devices/esp_device_%02X%02X%02X/command", mac[3], mac[4], mac[5]);
@@ -39,14 +41,34 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
             isPublish = true;
         }
         break;
+
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT disconnected from broker");
         MQTT_CONNECTED = 0;
         break;
+
     case MQTT_EVENT_DATA:
-        ESP_LOGI(TAG, "MQTT data - Topic: %.*s, Data: %.*s", event->topic_len, event->topic, event->data_len, event->data);
-        handle_led_command(event->data, event->data_len);
+        // Buffer tạm để chứa topic và data
+        char topic[MAX_DATA_LENGTH] = {0};
+        char data[MAX_DATA_LENGTH] = {0};
+
+        // Giới hạn độ dài
+        int topic_len = (event->topic_len >= MAX_DATA_LENGTH) ? MAX_DATA_LENGTH - 1 : event->topic_len;
+        int data_len = (event->data_len >= MAX_DATA_LENGTH) ? MAX_DATA_LENGTH - 1 : event->data_len;
+
+        // Sao chép dữ liệu và thêm ký tự null
+        strncpy(topic, event->topic, topic_len);
+        topic[topic_len] = '\0';
+        strncpy(data, event->data, data_len);
+        data[data_len] = '\0';
+
+        // Ghi log dữ liệu nhận được
+        ESP_LOGI(TAG, "MQTT data - Topic: '%s', Data: '%s'", topic, data);
+
+        // Gọi hàm xử lý lệnh LED với command_topic đã lưu
+        handle_led_command(topic, data, data_len, command_topic);
         break;
+
     default:
         ESP_LOGI(TAG, "Other MQTT event id: %d", event->event_id);
         break;
