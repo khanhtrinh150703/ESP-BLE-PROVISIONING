@@ -79,6 +79,8 @@ static void process_non_default_topic_command(const char *command, const char *t
     } else {
         ESP_LOGW(TAG, "Unknown command '%s' from topic '%s'", command, topic);
     }
+}
+
 /**
  * @brief Xử lý lệnh LED dựa trên topic và dữ liệu nhận được
  * @param topic Chuỗi topic nhận được
